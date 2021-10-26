@@ -11,6 +11,7 @@ import (
 	"image/jpeg"
 	"log"
 	"os"
+	imageErrorHeap "quadtree/heap"
 )
 
 //const filename = "E137odiVkAQjj7T.jpg"
@@ -75,43 +76,71 @@ func main() {
 
 	dc := gg.NewContext(originalImg.Bounds().Dx(), originalImg.Bounds().Dy())
 
-	var (
-		images  []image.Image
-		rects   = []image.Rectangle{copyImg.Bounds()}
-		crosses []image.Rectangle
-	)
-
-	//imgErrHeap := imageErrorHeap.NewImageErrorHeap(copyImg)
-	//heap.Init(imgErrHeap)
-
-	for i:=0; i<8; i++ {
-		var newRects = make([]image.Rectangle, 0, len(rects)*4)
-		for _, rect := range rects {
-			// append next loop's rectangles
-			newRects = append(newRects, split4Rectangle(rect)...)
-
-			trimmedImg := moveTopLeft(copyImg.SubImage(rect), rect)
-			avgColor := averageColor(trimmedImg)
-
-			dc.SetColor(avgColor)
-			dc.DrawRectangle(float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Max.X), float64(rect.Max.Y))
+	imgErrHeap := imageErrorHeap.NewImageErrorHeap(copyImg)
+	//var crosses []image.Rectangle
+	var images  []image.Image
+	for i:=0; i<1000; i++ {
+		ire := imgErrHeap.PopHelp()
+		//for _, tmp := range imgErrHeap.Tmp() {
+		//	fmt.Println(tmp.AvgError)
+		//}
+		for _, rect := range split4Rectangle(ire.Rect) {
+			tmp := imgErrHeap.PushHelp(rect)
+			dc.DrawRectangle(
+				float64(tmp.Rect.Min.X),
+				float64(tmp.Rect.Min.Y),
+				float64(tmp.Rect.Dx()),
+				float64(tmp.Rect.Dy()),
+			)
+			dc.SetColor(tmp.AvgColor)
 			dc.Fill()
-
-			//drawCross(dc, rect, math.Pow(0.8, float64(i)))
 		}
 
-		// draw previous split's crosses
-		fmt.Printf("Crosses: %d\n", len(crosses))
-		for _, cross := range crosses {
-			drawCross(dc, cross, 0.8)
+		////draw previous split's crosses
+		//fmt.Printf("Crosses: %d\n", len(crosses))
+		//crosses = append(crosses, ire.Rect)
+		//for _, cross := range crosses {
+		//	drawCross(dc, cross, 0.8)
+		//}
+
+		if i % 5 == 0 {
+			fmt.Println("test")
+			_ = dc.SavePNG(fmt.Sprintf("./out/%d.png", i))
 		}
-		crosses = append(crosses, rects...)
-
-		rects = newRects
-
-		_ = dc.SavePNG(fmt.Sprintf("./out/%d.png", i))
 		images = append(images, dc.Image())
 	}
+
+	//var (
+	//	images  []image.Image
+	//	rects   = []image.Rectangle{copyImg.Bounds()}
+	//	crosses []image.Rectangle
+	//)
+	//for i:=0; i<8; i++ {
+	//	var newRects = make([]image.Rectangle, 0, len(rects)*4)
+	//	for _, rect := range rects {
+	//		// append next loop's rectangles
+	//		newRects = append(newRects, split4Rectangle(rect)...)
+	//
+	//		trimmedImg := moveTopLeft(copyImg.SubImage(rect), rect)
+	//		avgColor := averageColor(trimmedImg)
+	//
+	//		dc.SetColor(avgColor)
+	//		dc.DrawRectangle(float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Max.X), float64(rect.Max.Y))
+	//		dc.Fill()
+	//	}
+	//
+	//	// draw previous split's crosses
+	//	fmt.Printf("Crosses: %d\n", len(crosses))
+	//	for _, cross := range crosses {
+	//		drawCross(dc, cross, 0.8)
+	//	}
+	//	crosses = append(crosses, rects...)
+	//
+	//	rects = newRects
+	//
+	//	_ = dc.SavePNG(fmt.Sprintf("./out/%d.png", i))
+	//	images = append(images, dc.Image())
+	//}
 }
 
 func imagesToGIF(imgs []image.Image) {
