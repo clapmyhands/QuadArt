@@ -10,7 +10,6 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"log"
-	"math"
 	"os"
 )
 
@@ -55,7 +54,7 @@ const filename = "tmp.jpg"
 // 	dc := gg.NewContextForImage(dimg)
 // 	dc.DrawImage(dimg, 0, 0)
 // 	dc.SavePNG("out.png")
-// }
+//
 
 func main() {
 	reader, err := os.Open(filename)
@@ -77,15 +76,15 @@ func main() {
 	dc := gg.NewContext(originalImg.Bounds().Dx(), originalImg.Bounds().Dy())
 
 	var (
-		images = make([]*image.Paletted, 0, 5)
-		delays = make([]int, 0, 5)
-		rects = []image.Rectangle{copyImg.Bounds()}
+		images  []image.Image
+		rects   = []image.Rectangle{copyImg.Bounds()}
+		crosses []image.Rectangle
 	)
 
 	//imgErrHeap := imageErrorHeap.NewImageErrorHeap(copyImg)
 	//heap.Init(imgErrHeap)
 
-	for i:=0; i<7; i++ {
+	for i:=0; i<8; i++ {
 		var newRects = make([]image.Rectangle, 0, len(rects)*4)
 		for _, rect := range rects {
 			// append next loop's rectangles
@@ -98,15 +97,32 @@ func main() {
 			dc.DrawRectangle(float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Max.X), float64(rect.Max.Y))
 			dc.Fill()
 
-			drawCross(dc, rect, math.Pow(0.8, float64(i)))
+			//drawCross(dc, rect, math.Pow(0.8, float64(i)))
 		}
-		rects = newRects
-		_ = dc.SavePNG(fmt.Sprintf("./out/%d.png", i))
 
-		images = append(images, imageToPaletted(dc.Image()))
+		// draw previous split's crosses
+		fmt.Printf("Crosses: %d\n", len(crosses))
+		for _, cross := range crosses {
+			drawCross(dc, cross, 0.8)
+		}
+		crosses = append(crosses, rects...)
+
+		rects = newRects
+
+		_ = dc.SavePNG(fmt.Sprintf("./out/%d.png", i))
+		images = append(images, dc.Image())
+	}
+}
+
+func imagesToGIF(imgs []image.Image) {
+	var (
+		images = make([]*image.Paletted, 0, 5)
+		delays = make([]int, 0, 5)
+	)
+	for _, img := range imgs {
+		images = append(images, imageToPaletted(img))
 		delays = append(delays, 100)
 	}
-
 	f, err := os.OpenFile("pepe.gif", os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		log.Fatal(err)
@@ -119,7 +135,6 @@ func main() {
 		Image: images,
 		Delay: delays,
 	})
-
 }
 
 func split4Rectangle(rect image.Rectangle) []image.Rectangle {
@@ -173,6 +188,17 @@ func averageColor(i image.Image) color.RGBA64 {
 		area = uint64(i.Bounds().Dx() * i.Bounds().Dy())
 		cumR, cumG, cumB, cumA uint64 = 0, 0, 0, 0
 	)
+
+	if area <= 1 {
+		fmt.Println(area)
+		r, g, b, a := i.At(i.Bounds().Min.X, i.Bounds().Min.Y).RGBA()
+		return color.RGBA64{
+			R: uint16(r),
+			G: uint16(g),
+			B: uint16(b),
+			A: uint16(a),
+		}
+	}
 
 	for y:=i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
 		for x:=i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
