@@ -29,16 +29,16 @@ func newImageRectangleError(img *image.RGBA, rect image.Rectangle) ImageRectangl
 	}
 }
 
-type ImageErrorHeap struct{
-	img *image.RGBA
+type ImageErrorHeap struct {
+	img          *image.RGBA
 	imgRectError []ImageRectangleError
 }
 
-func (h ImageErrorHeap) Tmp() []ImageRectangleError{
+func (h ImageErrorHeap) Tmp() []ImageRectangleError {
 	return h.imgRectError
 }
 
-func NewImageErrorHeap(img *image.RGBA) *ImageErrorHeap{
+func NewImageErrorHeap(img *image.RGBA) *ImageErrorHeap {
 	imgErrorHeap := &ImageErrorHeap{
 		img:          img,
 		imgRectError: make([]ImageRectangleError, 0),
@@ -72,7 +72,7 @@ func (h *ImageErrorHeap) Pop() interface{} {
 }
 
 // PushHelp - QoL method to push new record
-func (h *ImageErrorHeap) PushHelp(rect image.Rectangle) ImageRectangleError{
+func (h *ImageErrorHeap) PushHelp(rect image.Rectangle) ImageRectangleError {
 	ire := newImageRectangleError(h.img, rect)
 	heap.Push(h, ire)
 	return ire
@@ -91,12 +91,12 @@ func moveTopLeft(img image.Image, rect image.Rectangle) *image.RGBA {
 
 func averageColor(i image.Image) color.RGBA64 {
 	var (
-		area = uint64(i.Bounds().Dx() * i.Bounds().Dy())
+		area                          = uint64(i.Bounds().Dx() * i.Bounds().Dy())
 		cumR, cumG, cumB, cumA uint64 = 0, 0, 0, 0
 	)
 
-	for y:=i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
-		for x:=i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
+	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
+		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			r, g, b, a := i.At(x, y).RGBA()
 			cumR += uint64(r)
 			cumG += uint64(g)
@@ -115,20 +115,23 @@ func averageColor(i image.Image) color.RGBA64 {
 
 func calculateColorMSE(i image.Image, c color.RGBA64) float64 {
 	// TODO: change to use CIELAB distance calculation instead, for now use rgb MSE
-	se := func (c1, c2 color.Color) float64 {
+	se := func(c1, c2 color.Color) float64 {
 		r1, g1, b1, _ := c1.RGBA()
 		r2, g2, b2, _ := c2.RGBA()
 		rErr, gErr, bErr := r1-r2, g1-g2, b1-b2
-		return float64(rErr * rErr) + float64(gErr * gErr) + float64(bErr * bErr)
+		// RGB -> Grayscale (Standard NTSC Conversion)
+		return 0.2989*float64(rErr*rErr) +
+			0.5870*float64(gErr*gErr) +
+			0.1140*float64(bErr*bErr)
 	}
 
 	s := i.Bounds().Size()
 	area := float64(s.X * s.Y)
 	mse := float64(0)
-	for y:=i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
-		for x:=i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
+	for y := i.Bounds().Min.Y; y < i.Bounds().Max.Y; y++ {
+		for x := i.Bounds().Min.X; x < i.Bounds().Max.X; x++ {
 			mse += se(i.At(x, y), c) / area
 		}
 	}
-	return math.Sqrt(mse) * math.Log2(area) // weighted average by size
+	return math.Sqrt(mse) * math.Sqrt(area) // weighted average by size
 }
