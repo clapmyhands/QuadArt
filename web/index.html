@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+
+    <link rel="stylesheet" href="./index.css">
+    <script src="./index.js"></script>
+    <title>QuadArt</title>
+</head>
+<body>
+    <div id="sidebar-menu" class="ui wide sidebar visible vertical menu">
+        <div class="item">
+            <h4 class="ui header">BG-Color Picker</h4>
+            <div id="picker"></div>
+        </div>
+        <div class="item">
+            <h4 class="ui header">Rounded Corner</h4>
+            <div class="slider-group">
+                <div class="ui labeled slider" id="rounded-corner-slider"></div>
+                <div class="ui small input">
+                    <input type="text" id="rounded-corner-slider-input" disabled="">
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="ui header">Leaf Size</h4>
+            <div class="slider-group">
+                <div class="ui labeled slider" id="leaf-size-slider"></div>
+                <div class="ui small input">
+                    <input type="text" id="leaf-size-slider-input" disabled="">
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="ui header">Error Threshold</h4>
+            <div class="slider-group">
+                <div class="ui labeled slider" id="error-threshold-slider"></div>
+                <div class="ui small input">
+                    <input type="text" id="error-threshold-slider-input" disabled="">
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="ui header">Control</h4>
+            <div class="ui four basic buttons">
+                <button class="column ui icon button" title="Start" onclick="start();">
+                    <i class="play icon"></i>
+                </button>
+                <button class="column ui icon button" title="Pause" onclick="stop(); redraw(true)">
+                    <i class="pause icon"></i>
+                </button>
+                <button class="column ui icon  button" title="Step" onclick="step(); redraw(true);">
+                    <i class="step forward icon"></i>
+                </button>
+                <button class="column ui icon  button" title="Reset" onclick="reset(); redraw();">
+                    <i class="redo icon"></i>
+                </button>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="ui header">Image Control</h4>
+            <div class="ui two basic buttons">
+                <button class="column ui icon button" title="Upload image" onclick="document.getElementById('image-upload-input').click();">
+                    <i class="upload icon"></i>
+                </button>
+                <input id="image-upload-input" type="file" style="display:none;">
+                <button class="column ui icon button" title="Save current image" onclick="save();">
+                    <i class="save icon"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="pusher" id="main">
+        <div class="ui content segment">
+            <canvas id="source"></canvas>
+            <svg id="target"></svg>
+            <div id="content">
+                <p id="info">test</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
