@@ -377,9 +377,10 @@ window.onload = () => {
     initSlider();
     initColorPicker();
     initImageUploader();
-    initDragAndDrop();
     $('.sidebar').sidebar({
         closable: false,
         dimPage: false,
     });
+
+    initDragAndDrop();
 }
