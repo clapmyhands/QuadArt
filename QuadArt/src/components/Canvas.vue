@@ -36,8 +36,8 @@ function calcColorMSE(imageData:Uint8ClampedArray, {r, g, b}) {
 }
 </script>
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue';
-import * as d3 from 'd3';
+import { ref, onMounted, watch } from 'vue';
+import { select, interpolate } from 'd3';
 import { computed } from '@vue/reactivity';
 
 interface Parameter {
@@ -90,7 +90,7 @@ const img = new Image();
 const canvas = ref(null);
 let context = null;
 let svg = null;
-let quads = reactive([]);
+let quads = ref([]);
 let id = 0;
 let errorVal = ref(0);
 
@@ -100,69 +100,11 @@ const updateViewFreq = 200;
 const updateModelFreq = 1;
 
 const errorInfo = computed(() => {
-    const iterations = Math.max((quads.length - 1) / 3, 0);
+    const iterations = Math.max((quads.value.length - 1) / 3, 0);
     return 'Iterations: ' + iterations +
-            ' - Shapes: ' + quads.length +
+            ' - Shapes: ' + quads.value.length +
             ' - Error: ' + errorVal.value.toString();
 })
-
-function split(node) {
-    if (node.leaf) {
-        return
-    }
-    const idx = quads.indexOf(node);
-    quads.splice(idx, 1);
-
-    const halfW = node.width / 2;
-    const halfH = node.height / 2;
-    const x1 = node.x;
-    const x2 = node.x + halfW;
-    const y1 = node.y;
-    const y2 = node.y + halfH;
-    quads.push(
-        createQuadNode(x1, y1, halfW, halfH, node.color),
-        createQuadNode(x2, y1, halfW, halfH, node.color),
-        createQuadNode(x1, y2, halfW, halfH, node.color),
-        createQuadNode(x2, y2, halfW, halfH, node.color)
-    );
-}
-
-function step() {
-    // can use quadtree instead of filtering array
-    const nonLeafNodes = quads.filter(n => !n.leaf)
-    if (nonLeafNodes.length <= 0) {
-        return
-    }
-    let maxE = nonLeafNodes[0];
-    for (let i = 1; i < nonLeafNodes.length; i++) {
-        const e = nonLeafNodes[i];
-        if (e.error > maxE.error) {
-            maxE = e
-        }
-    }
-    if (maxE.error < props.param.errorThreshold) {
-        emit('errorThresholdReached');
-        return
-    }
-    split(maxE);
-    errorVal.value = maxE.error.toPrecision(5);
-}
-
-function redraw(highlight:boolean = false) {
-    const rect = svg.selectAll('rect').data(quads, n => n.id);
-    rect.exit().remove();
-    rect.enter()
-        .append('rect')
-        .attr('x', n => {return n.x+0.25})
-        .attr('y', n => {return n.y+0.25})
-        .attr('rx', props.param?.roundedCorner || 0)
-        .attr('width', n => {return n.width-0.5})
-        .attr('height', n => {return n.height-0.5})
-        .attr('fill', n => {return highlight? '#ffffff': n.prevColor})
-        .transition().duration(500).styleTween('fill', n => {
-            return d3.interpolate(highlight? '#ffffff': n.prevColor, n.color);
-        });
-}
 
 function createQuadNode(x:number, y:number, width:number, height:number, prevColor:string) {
     id++;  // dont use global id?
@@ -183,14 +125,18 @@ function createQuadNode(x:number, y:number, width:number, height:number, prevCol
 
 function reset() {
     const ratio = img.width / img.height;
+    const maxWidth = Math.round(0.8 * window.outerWidth);
+    const maxHeight = Math.round(0.8 * window.outerHeight);
+
     let width = img.width;
     let height = img.height;
     // TODO: take care where both are bigger
-    if (width > 1024) {
-        width = 1024
+    if (width > maxWidth) {
+        width = maxWidth
         height = Math.round(width / ratio);
-    } else if (height > 1024) {
-        height = 1024
+    }
+    if (height > maxHeight) {
+        height = maxHeight
         width = Math.round(height * ratio);
     }
 
@@ -201,9 +147,69 @@ function reset() {
     context.canvas.height = height;
     context.drawImage(img, 0, 0, width, height);
 
-    quads = [];
-    quads.push(createQuadNode(0, 0, width, height, '#000000'));
+    quads.value = [];
+    quads.value.push(createQuadNode(0, 0, width, height, '#000000'));
+    errorVal.value = 0;
+
     redraw();
+}
+
+function split(node) {
+    if (node.leaf) {
+        return
+    }
+    const idx = quads.value.indexOf(node);
+    quads.value.splice(idx, 1);
+
+    const halfW = node.width / 2;
+    const halfH = node.height / 2;
+    const x1 = node.x;
+    const x2 = node.x + halfW;
+    const y1 = node.y;
+    const y2 = node.y + halfH;
+    quads.value.push(
+        createQuadNode(x1, y1, halfW, halfH, node.color),
+        createQuadNode(x2, y1, halfW, halfH, node.color),
+        createQuadNode(x1, y2, halfW, halfH, node.color),
+        createQuadNode(x2, y2, halfW, halfH, node.color)
+    );
+}
+
+function step() {
+    // can use quadtree instead of filtering array
+    const nonLeafNodes = quads.value.filter(n => !n.leaf)
+    if (nonLeafNodes.length <= 0) {
+        return
+    }
+    let maxE = nonLeafNodes[0];
+    for (let i = 1; i < nonLeafNodes.length; i++) {
+        const e = nonLeafNodes[i];
+        if (e.error > maxE.error) {
+            maxE = e
+        }
+    }
+    if (maxE.error < props.param.errorThreshold) {
+        emit('errorThresholdReached');
+        return
+    }
+    split(maxE);
+    errorVal.value = maxE.error.toPrecision(5);
+}
+
+function redraw(highlight:boolean = false) {
+    const rect = svg.selectAll('rect').data(quads.value, n => n.id);
+    rect.exit().remove();
+    rect.enter()
+        .append('rect')
+        .attr('x', n => {return n.x+0.25})
+        .attr('y', n => {return n.y+0.25})
+        .attr('rx', props.param?.roundedCorner || 0)
+        .attr('width', n => {return n.width-0.5})
+        .attr('height', n => {return n.height-0.5})
+        .attr('fill', n => {return highlight? '#ffffff': n.prevColor})
+        .transition().duration(500).styleTween('fill', n => {
+            return interpolate(highlight? '#ffffff': n.prevColor, n.color);
+        });
 }
 
 function updateModel() {
@@ -225,7 +231,7 @@ function updateView() {
 onMounted(() => {
     // will be read frequently so use software canvas for performance
     context = canvas.value.getContext('2d', {willReadFrequently: true});
-    svg = d3.select('svg');
+    svg = select('#target');
 
     img.src = props.imgSrc;
     img.onload = () => {
@@ -243,6 +249,13 @@ watch(() => props.param.running, (newValue) => {
         redraw(true);
     }
 });
+
+defineExpose({
+    step,
+    reset,
+    redraw,
+    // restart,
+});
 </script>
 
 <template>
@@ -259,19 +272,16 @@ watch(() => props.param.running, (newValue) => {
 <style scoped>
 .canvas {
     width: fit-content;
-    align-items: center;
     text-align: center;
+    margin: 0;
+    padding: 0;
 }
 
 #source {
     display: none;
-    /* max-width: 70%; */
-    /* outline: 5px solid black; */
 }
 
 #target {
-    /* display: none; */
-    /* max-width: 70%; */
     outline: 5px solid black;
 }
 </style>
