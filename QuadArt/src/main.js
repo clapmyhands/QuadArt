@@ -7,12 +7,13 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 /* import font awesome icon component */
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 /* import specific icons */
-import { faPlay, faPause, faForwardStep, faRepeat } from '@fortawesome/free-solid-svg-icons'
+import { faPlay, faPause, faForwardStep, faRepeat, faUpload, faFileArrowDown } from '@fortawesome/free-solid-svg-icons'
 
 import './assets/main.css'
 
 /* add icons to the library */
-library.add(faPlay, faPause, faForwardStep, faRepeat);
+library.add(
+    faPlay, faPause, faForwardStep, faRepeat, faUpload, faFileArrowDown);
 
 const app = createApp(SideApp);
 

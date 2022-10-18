@@ -3,25 +3,30 @@ import {onMounted, ref, reactive} from 'vue'
 import Controls from './components/Controls.vue'
 import Canvas from './components/Canvas.vue'
 
-const canvas = ref(null)
+const canvas = ref(null);
 
+const running = ref(false);
 const param = reactive({
   leafSize: 8,  // default 12
   roundedCorner: 0,  // default 0
   errorThreshold: 1000,  // default 420
-  running: false,
+  backgroundColor: "#f2f2f2",
 });
 const imgSrc = ref('/tmp.jpg');
 
 function toggleRunning(state?: boolean) {
-  param.running = state == undefined? !param.running: state;
+  running.value = state == undefined? !running.value: state;
 }
 
 onMounted(() => {
   toggleRunning(true);
 })
 
-function handleControlChange(controlName) {
+function handleBackgroundColor(color) {
+  param.backgroundColor = color;
+}
+
+function handleControl(controlName) {
   switch(controlName) {
     case "start":
       toggleRunning(true);
@@ -39,14 +44,40 @@ function handleControlChange(controlName) {
     default:
       return
   }
-}
+};
+
+function handleImageControl(imageControlName, ...args) {
+  switch(imageControlName) {
+    case "upload":
+      if (args.length != 1) {
+        return;  // unexpected
+      }
+      imgSrc.value = args[0] as string;
+      break;
+    case "save":
+      canvas.value.save();
+      break;
+    default:
+      return
+  }
+};
 
 </script>
 
 <template>
-  <Controls @control-change="handleControlChange"/>
+  <Controls
+    @background-color="handleBackgroundColor"
+    @control="handleControl"
+    @image-control="handleImageControl"
+  />
   <main>
-    <Canvas ref="canvas" :img-src='imgSrc' :param="param" @error-threshold-reached="toggleRunning(false)"/>
+    <Canvas
+      ref="canvas"
+      :img-src='imgSrc'
+      :param="param"
+      :running="running"
+      @error-threshold-reached="toggleRunning(false)"
+    />
   </main>
 </template>
 

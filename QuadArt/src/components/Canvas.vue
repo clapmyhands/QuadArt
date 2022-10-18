@@ -41,14 +41,15 @@ import { select, interpolate } from 'd3';
 import { computed } from '@vue/reactivity';
 
 interface Parameter {
-  leafSize?: number,  // default 12
-  roundedCorner?: number,  // default 0
-  errorThreshold?: number,  // default 420
-  running?: boolean,
+  leafSize?: number  // default 12
+  roundedCorner?: number  // default 0
+  errorThreshold?: number  // default 420
+  backgroundColor?: string
 }
 interface Props {
-    imgSrc: string,
+    imgSrc: string
     param?: Parameter
+    running?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
     param: () => <Parameter>{
@@ -56,7 +57,9 @@ const props = withDefaults(defineProps<Props>(), {
         roundedCorner: 0,
         errorThreshold: 420,
         running: false,
-    }
+        backgroundColor: '#ffffff',
+    },
+    running: false
 });
 
 const emit = defineEmits(['errorThresholdReached']);
@@ -142,7 +145,8 @@ function reset() {
 
     svg.attr('viewBox', '0 0 ' + width + ' ' + height)
         .attr('width', width)
-        .attr('height', height);
+        .attr('height', height)
+        .style('background-color', props.param.backgroundColor);
     context.canvas.width = width;
     context.canvas.height = height;
     context.drawImage(img, 0, 0, width, height);
@@ -214,7 +218,7 @@ function redraw(highlight:boolean = false) {
 
 function updateModel() {
     clearTimeout(updateModelTimer);
-    if (props.param.running) {
+    if (props.running) {
         step();
         updateModelTimer = setTimeout(updateModel, updateModelFreq);
     }
@@ -222,10 +226,46 @@ function updateModel() {
 
 function updateView() {
     clearTimeout(updateViewTimer);
-    if (props.param.running) {
+    if (props.running) {
         redraw();
         updateViewTimer = setTimeout(updateView, updateViewFreq);
     }
+}
+
+function save() {
+    const svgE = document.getElementById('target') as HTMLOrSVGElement as SVGElement as SVGGraphicsElement;
+    const {width: w, height: h} = svgE.getBBox();
+
+    // clone svg and turn to blobURL
+    svgE.setAttribute('xmlns', "http://www.w3.org/2000/svg");  // needed otherwise chrome will not work
+    const outerHTML = svgE.outerHTML;
+    const blob = new Blob([outerHTML], {type:'image/svg+xml;charset=utf-8'});
+    const URL = window.URL || window.webkitURL;
+    const blobURL = URL.createObjectURL(blob);
+
+    // create new image, canvas, and draw blobURL to canvas
+    let copyImg = new Image();
+    copyImg.onload = () => {
+        let tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = w;
+        tmpCanvas.height = h;
+
+        let tmpContext = tmpCanvas.getContext('2d');
+        tmpContext.drawImage(copyImg, 0, 0, w, h);
+
+        // save canvas
+        let png = tmpCanvas.toDataURL();
+        let download = function(href, name){
+            const link = document.createElement('a');
+            link.download = name;
+            document.body.append(link);
+            link.href = href;
+            link.click();
+            link.remove();
+        }
+        download(png, "image.png");
+    }
+    copyImg.src = blobURL;
 }
 
 onMounted(() => {
@@ -233,15 +273,17 @@ onMounted(() => {
     context = canvas.value.getContext('2d', {willReadFrequently: true});
     svg = select('#target');
 
+    img.onload = () => reset()
     img.src = props.imgSrc;
-    img.onload = () => {
-        reset();
-    }
 });
 
+watch(() => props.imgSrc, (newImgSrc) => img.src = props.imgSrc);
+
+watch(() => props.param.backgroundColor, (newColor) => svg.style('background-color', newColor));
+
 // interestingly on HMR, this does not trigger because the running state is defined on parent
-watch(() => props.param.running, (newValue) => {
-    console.log("running status changed: "+ props.param.running);
+watch(() => props.running, (newValue) => {
+    console.log("running status changed: "+ props.running);
     if (newValue) {
         updateView();
         updateModel();
@@ -254,7 +296,7 @@ defineExpose({
     step,
     reset,
     redraw,
-    // restart,
+    save,
 });
 </script>
 
