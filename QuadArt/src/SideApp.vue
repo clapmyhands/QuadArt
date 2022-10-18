@@ -2,6 +2,7 @@
 import {onMounted, ref, reactive} from 'vue'
 import Controls from './components/Controls.vue'
 import Canvas from './components/Canvas.vue'
+import imgUrl from './assets/tmp.jpg'
 
 const canvas = ref(null);
 
@@ -12,7 +13,8 @@ const param = reactive({
   errorThreshold: 500,  // default 420
   backgroundColor: "#f2f2f2",
 });
-const imgSrc = ref('/tmp.jpg');
+
+const imgSrc = ref(imgUrl);
 
 function toggleRunning(state?: boolean) {
   running.value = state == undefined? !running.value: state;
