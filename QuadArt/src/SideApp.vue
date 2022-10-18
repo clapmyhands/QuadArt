@@ -7,9 +7,9 @@ const canvas = ref(null);
 
 const running = ref(false);
 const param = reactive({
-  leafSize: 8,  // default 12
+  leafSize: 12,  // default 12
   roundedCorner: 0,  // default 0
-  errorThreshold: 1000,  // default 420
+  errorThreshold: 500,  // default 420
   backgroundColor: "#f2f2f2",
 });
 const imgSrc = ref('/tmp.jpg');
@@ -24,6 +24,23 @@ onMounted(() => {
 
 function handleBackgroundColor(color) {
   param.backgroundColor = color;
+}
+
+function handleParameterChange(paramName, val) {
+  switch(paramName) {
+    case "roundedCorner":
+      param.roundedCorner = val
+      break;
+    case "leafSize":
+      param.leafSize = val
+      break;
+    case "errorThreshold":
+      param.errorThreshold = val
+      break;
+    default:
+  }
+  canvas.value.reset();
+  toggleRunning(true);
 }
 
 function handleControl(controlName) {
@@ -69,6 +86,10 @@ function handleImageControl(imageControlName, ...args) {
     @background-color="handleBackgroundColor"
     @control="handleControl"
     @image-control="handleImageControl"
+    @parameter="handleParameterChange"
+    :rounded-corner="param.roundedCorner"
+    :leaf-size="param.leafSize"
+    :error-threshold="param.errorThreshold"
   />
   <main>
     <Canvas

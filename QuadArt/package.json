@@ -13,7 +13,8 @@
     "@fortawesome/vue-fontawesome": "^3.0.1",
     "@jaames/iro": "^5.5.2",
     "d3": "^7.6.1",
-    "vue": "^3.2.38"
+    "vue": "^3.2.38",
+    "vue-slider-component": "^4.1.0-beta.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^3.0.3",

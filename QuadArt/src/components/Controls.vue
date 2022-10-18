@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import iro from '@jaames/iro'
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
+
+import VueSlider from 'vue-slider-component'
+import 'vue-slider-component/theme/default.css'
+
+interface Props {
+    leafSize?: number
+    roundedCorner?: number
+    errorThreshold?: number
+}
+const props = defineProps<Props>();
 
 const emit = defineEmits([
     "backgroundColor",
+    "parameter",
     "control",
     "imageControl",
 ])
@@ -19,6 +30,61 @@ function initColorPicker() {
     colorPicker.on('input:end', (color) => {
         emit("backgroundColor", color.hexString)
     });
+}
+
+const slider = {
+    // contained: true,
+    tooltip: 'focus',
+    useKeyboard: false,
+    lazy: true,
+    dragOnClick: true,
+}
+
+const roundedCornerSlider = {
+    ...slider,
+    min: 0,
+    max: 50,
+    marks: {
+        0: "0px",
+        50: "50px",
+    },
+}
+const roundedCornerVal = ref(roundedCornerSlider.min);
+function handleRoundedCornerChange(val) {
+    emit('parameter', 'roundedCorner', val);
+}
+
+const leafSizeSlider = {
+    ...slider,
+    min: 4,
+    max: 64,
+    interval: 4,
+    marks: {
+        4: 4,
+        8: 8,
+        16: 16,
+        32: 32,
+        64: 64,
+    },
+}
+const leafSizeVal = ref(leafSizeSlider.min);
+function handleLeafSizeChange(val) {
+    emit('parameter', 'leafSize', val);
+}
+
+const errorThresholdSlider = {
+    ...slider,
+    min: 50,
+    max: 2500,
+    interval: 50,
+    marks: {
+        50: 50,
+        2500: 2500,
+    },
+}
+const errorThresholdVal = ref(errorThresholdSlider.min);
+function handleErrorThresholdChange(val) {
+    emit('parameter', 'errorThreshold', val);
 }
 
 function imageUploadClick() {
@@ -42,6 +108,10 @@ function handleImageUpload(file:File) {
     reader.readAsDataURL(file)
 }
 
+function clampSlider(n:number, sliderCfg:{min:number, max:number}):number {
+    return Math.min(Math.max(n, sliderCfg.min), sliderCfg.max);
+}
+
 onMounted(() => {
     document.getElementById('image-upload-input').onchange = e => {
         const file = (e.target as HTMLInputElement).files.item(0);
@@ -49,6 +119,10 @@ onMounted(() => {
     };
 
     initColorPicker();
+
+    roundedCornerVal.value = clampSlider(props.roundedCorner || 0, roundedCornerSlider);
+    leafSizeVal.value = clampSlider(props.leafSize || 0, leafSizeSlider);
+    errorThresholdVal.value = clampSlider(props.errorThreshold || 0, errorThresholdSlider);
 });
 </script>
 
@@ -58,9 +132,45 @@ onMounted(() => {
             <h4 class="header">BG-Color Picker</h4>
             <div id="picker"></div>
         </div>
-        <div class="item"></div>
-        <div class="item"></div>
-        <div class="item"></div>
+        <div class="item">
+            <h4 class="header">Rounded Corner</h4>
+            <div class="slider-group">
+                <div class="slider">
+                    <vue-slider
+                        v-bind="roundedCornerSlider"
+                        v-model="roundedCornerVal"
+                        @change="handleRoundedCornerChange"
+                    >
+                    </vue-slider>
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="header">Leaf Size</h4>
+            <div class="slider-group">
+                <div class="slider">
+                    <vue-slider
+                        v-bind="leafSizeSlider"
+                        v-model="leafSizeVal"
+                        @change="handleLeafSizeChange"
+                    >
+                    </vue-slider>
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="header">Error Threshold</h4>
+            <div class="slider-group">
+                <div class="slider">
+                    <vue-slider
+                        v-bind="errorThresholdSlider"
+                        v-model="errorThresholdVal"
+                        @change="handleErrorThresholdChange"
+                    >
+                    </vue-slider>
+                </div>
+            </div>
+        </div>
         <div class="item">
             <h4 class="header">Control</h4>
             <div class="four buttons">
@@ -107,12 +217,12 @@ onMounted(() => {
 .item {
     width: 100%;
     padding: .75rem;
+    padding-right: 1rem;
     border-top: .5px solid var(--color-border);
     border-bottom: .5px solid var(--color-border);
 }
 .item:first-of-type {
     border-top: 0;
-    /* border-top: 1px solid var(--color-border); */
 }
 .item:last-of-type {
     border-bottom: 1px solid var(--color-border);
@@ -168,5 +278,17 @@ button:hover {
 
 .two.buttons > button {
     width: 50%;
+}
+
+.slider-group {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    height: 2.5rem;
+}
+
+.slider-group > .slider {
+    width: calc(100% - 2rem);
+    margin: 0 auto 0 auto;
 }
 </style>

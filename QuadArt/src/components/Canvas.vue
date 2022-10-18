@@ -126,14 +126,18 @@ function createQuadNode(x:number, y:number, width:number, height:number, prevCol
     };
 }
 
+function convertRemToPixel(rem) {
+    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
 function reset() {
-    const ratio = img.width / img.height;
-    const maxWidth = Math.round(0.8 * window.outerWidth);
-    const maxHeight = Math.round(0.8 * window.outerHeight);
+    const mainE = document.getElementsByTagName('main')[0] as HTMLElement;
+    const maxWidth = mainE.clientWidth - convertRemToPixel(2);
+    const maxHeight = document.documentElement.clientHeight - convertRemToPixel(3);  // 2 padding + 1 text
 
     let width = img.width;
     let height = img.height;
-    // TODO: take care where both are bigger
+    const ratio = width / height;
     if (width > maxWidth) {
         width = maxWidth
         height = Math.round(width / ratio);
@@ -142,6 +146,8 @@ function reset() {
         height = maxHeight
         width = Math.round(height * ratio);
     }
+    // console.log(mainE.clientWidth, mainE.clientHeight);
+    // console.log(width, height);
 
     svg.attr('viewBox', '0 0 ' + width + ' ' + height)
         .attr('width', width)
@@ -283,7 +289,7 @@ watch(() => props.param.backgroundColor, (newColor) => svg.style('background-col
 
 // interestingly on HMR, this does not trigger because the running state is defined on parent
 watch(() => props.running, (newValue) => {
-    console.log("running status changed: "+ props.running);
+    // console.log("running status changed: "+ props.running);
     if (newValue) {
         updateView();
         updateModel();
