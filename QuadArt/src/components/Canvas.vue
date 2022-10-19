@@ -131,8 +131,13 @@ function convertRemToPixel(rem) {
 }
 
 function reset() {
-    const mainE = document.getElementsByTagName('main')[0] as HTMLElement;
-    const maxWidth = mainE.clientWidth - convertRemToPixel(2);
+    const canvasE = document.getElementsByClassName('canvas');
+    if (canvasE.length <= 0) {
+        return
+    }
+
+    const parentE = canvasE[0].parentElement as HTMLElement;
+    const maxWidth = parentE.clientWidth - convertRemToPixel(2);
     const maxHeight = document.documentElement.clientHeight - convertRemToPixel(3);  // 2 padding + 1 text
 
     let width = img.width;
@@ -146,7 +151,7 @@ function reset() {
         height = maxHeight
         width = Math.round(height * ratio);
     }
-    // console.log(mainE.clientWidth, mainE.clientHeight);
+    // console.log(parentE.clientWidth, parentE.clientHeight);
     // console.log(width, height);
 
     svg.attr('viewBox', '0 0 ' + width + ' ' + height)
