@@ -1,8 +1,8 @@
 import { createApp } from 'vue'
 // import App from './App.vue'
-import SideApp from './SideApp.vue'
+import App from './App.vue'
 
-const app = createApp(SideApp);
+const app = createApp(App);
 
 
 /* import the fontawesome core */
