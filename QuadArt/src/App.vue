@@ -65,13 +65,29 @@ function handleControl(controlName) {
   }
 };
 
+function handleImageUpload(file:File) {
+    const imageTypeRe = /image.*/;
+    if (!file.type.match(imageTypeRe)) {
+        alert('please choose image file');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = readerEvent => {
+        imgSrc.value = readerEvent.target.result
+    }
+    // use readAsDataURL for now
+    // https://stackoverflow.com/a/31743665
+    reader.readAsDataURL(file)
+}
+
 function handleImageControl(imageControlName, ...args) {
   switch(imageControlName) {
     case "upload":
       if (args.length != 1) {
         return;  // unexpected
       }
-      imgSrc.value = args[0] as string;
+      handleImageUpload(args[0] as File)
       break;
     case "save":
       canvas.value.save();
@@ -81,6 +97,14 @@ function handleImageControl(imageControlName, ...args) {
   }
 };
 
+const highlight = ref(false);
+function handleDrop(e:DragEvent) {
+    highlight.value = false;
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+        handleImageUpload(files[0]);
+    }
+}
 </script>
 
 <template>
@@ -92,15 +116,21 @@ function handleImageControl(imageControlName, ...args) {
     :rounded-corner="param.roundedCorner"
     :leaf-size="param.leafSize"
     :error-threshold="param.errorThreshold"
-  />
-  <main>
+    />
+  <main
+    :class="{ highlight: highlight }"
+    @dragenter.stop.prevent="highlight=true"
+    @dragover.stop.prevent="highlight=true"
+    @dragleave.stop.prevent="highlight=false"
+    @drop.stop.prevent="handleDrop"
+    >
     <Canvas
       ref="canvas"
       :img-src='imgSrc'
       :param="param"
       :running="running"
       @error-threshold-reached="toggleRunning(false)"
-    />
+      ></Canvas>
   </main>
 </template>
 

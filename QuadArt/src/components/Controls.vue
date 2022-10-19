@@ -14,9 +14,9 @@ const props = defineProps<Props>();
 
 const emit = defineEmits([
     "backgroundColor",
-    "parameter",
-    "control",
-    "imageControl",
+    "parameter",  // roundedCorner, leafSize, errorThreshold
+    "control",  // play,pause,step,reset
+    "imageControl",  // upload,save
 ])
 
 function initColorPicker() {
@@ -91,23 +91,6 @@ function imageUploadClick() {
     document.getElementById('image-upload-input').click();
 }
 
-function handleImageUpload(file:File) {
-    const imageTypeRe = /image.*/;
-    if (!file.type.match(imageTypeRe)) {
-        alert('please choose image file');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = readerEvent => {
-        emit('imageControl', 'upload', readerEvent.target.result);
-        // img.src = readerEvent.target.result;
-    }
-    // use readAsDataURL for now
-    // https://stackoverflow.com/a/31743665
-    reader.readAsDataURL(file)
-}
-
 function clampSlider(n:number, sliderCfg:{min:number, max:number}):number {
     return Math.min(Math.max(n, sliderCfg.min), sliderCfg.max);
 }
@@ -115,7 +98,7 @@ function clampSlider(n:number, sliderCfg:{min:number, max:number}):number {
 onMounted(() => {
     document.getElementById('image-upload-input').onchange = e => {
         const file = (e.target as HTMLInputElement).files.item(0);
-        handleImageUpload(file);
+        emit('imageControl', 'upload', file);
     };
 
     initColorPicker();
