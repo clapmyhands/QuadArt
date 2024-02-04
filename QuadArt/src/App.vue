@@ -2,7 +2,7 @@
 import {onMounted, ref, reactive} from 'vue'
 import Controls from './components/Controls.vue'
 import Canvas from './components/Canvas.vue'
-import imgUrl from './assets/tmp.jpg'
+import imgUrl from '@/assets/tmp.jpg'
 
 const canvas = ref(null);
 
@@ -74,7 +74,7 @@ function handleImageUpload(file:File) {
 
     const reader = new FileReader();
     reader.onload = readerEvent => {
-        imgSrc.value = readerEvent.target.result
+        imgSrc.value = readerEvent.target.result as string
     }
     // use readAsDataURL for now
     // https://stackoverflow.com/a/31743665
