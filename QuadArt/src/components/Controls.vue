@@ -22,10 +22,29 @@ const emit = defineEmits([
 function initColorPicker() {
     // iro.js
     const picker = document.getElementById('picker')
-    const width = picker.clientWidth - 40;
+    // const width = picker.clientWidth - 40;
     const colorPicker = iro.ColorPicker('#picker', {
-        width: width,
-        layoutDirection: 'horizontal',
+        width: picker.clientWidth,
+        layout: [
+            {
+                component: iro.ui.Slider,
+                options: {
+                    sliderType: 'hue'
+                }
+            },
+            {
+                component: iro.ui.Slider,
+                options: {
+                    sliderType: 'saturation'
+                }
+            },
+            {
+                component: iro.ui.Slider,
+                options: {
+                    sliderType: 'value'
+                }
+            },
+        ],
     });
     colorPicker.on('input:end', (color) => {
         emit("backgroundColor", color.hexString)
@@ -112,6 +131,35 @@ onMounted(() => {
 <template>
     <div class="menu">
         <div class="item">
+            <h4 class="header">Control</h4>
+            <div class="four buttons">
+                <button title="Start" @click.prevent="$emit('control', 'start')">
+                    <font-awesome-icon icon="fa-solid fa-play"></font-awesome-icon>
+                </button>
+                <button title="Pause" @click.prevent="$emit('control', 'pause')">
+                    <font-awesome-icon icon="fa-solid fa-pause"></font-awesome-icon>
+                </button>
+                <button title="Step" @click.prevent="$emit('control', 'step')">
+                    <font-awesome-icon icon="fa-solid fa-forward-step"></font-awesome-icon>
+                </button>
+                <button title="Reset" @click.prevent="$emit('control', 'reset')">
+                    <font-awesome-icon icon="fa-solid fa-repeat"></font-awesome-icon>
+                </button>
+            </div>
+        </div>
+        <div class="item">
+            <h4 class="header">Image Control</h4>
+            <div class="two buttons">
+                <button title="Upload" @click.prevent="imageUploadClick">
+                    <font-awesome-icon icon="fa-solid fa-upload"></font-awesome-icon>
+                </button>
+                <input id="image-upload-input" type="file" style="display:none;">
+                <button title="Save" @click.prevent="$emit('imageControl', 'save')">
+                    <font-awesome-icon icon="fa-solid fa-file-arrow-down"></font-awesome-icon>
+                </button>
+            </div>
+        </div>
+        <div class="item">
             <h4 class="header">BG-Color Picker</h4>
             <div id="picker"></div>
         </div>
@@ -154,45 +202,14 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div class="item">
-            <h4 class="header">Control</h4>
-            <div class="four buttons">
-                <button title="Start" @click.prevent="$emit('control', 'start')">
-                    <font-awesome-icon icon="fa-solid fa-play"></font-awesome-icon>
-                </button>
-                <button title="Pause" @click.prevent="$emit('control', 'pause')">
-                    <font-awesome-icon icon="fa-solid fa-pause"></font-awesome-icon>
-                </button>
-                <button title="Step" @click.prevent="$emit('control', 'step')">
-                    <font-awesome-icon icon="fa-solid fa-forward-step"></font-awesome-icon>
-                </button>
-                <button title="Reset" @click.prevent="$emit('control', 'reset')">
-                    <font-awesome-icon icon="fa-solid fa-repeat"></font-awesome-icon>
-                </button>
-            </div>
-        </div>
-        <div class="item">
-            <h4 class="header">Image Control</h4>
-            <div class="two buttons">
-                <button title="Upload" @click.prevent="imageUploadClick">
-                    <font-awesome-icon icon="fa-solid fa-upload"></font-awesome-icon>
-                </button>
-                <input id="image-upload-input" type="file" style="display:none;">
-                <button title="Save" @click.prevent="$emit('imageControl', 'save')">
-                    <font-awesome-icon icon="fa-solid fa-file-arrow-down"></font-awesome-icon>
-                </button>
-            </div>
-        </div>
     </div>
 </template>
 
 <style scoped>
 /* @import "./base.css"; */
-
 .menu {
     margin: 0;
-    overflow-y: auto;
-    border-right: 1px solid var(--color-border);
+    border-left: 1px solid var(--color-border);
     border-top: .5px solid var(--color-border);
     border-bottom: .5px solid var(--color-border);;
 }
@@ -219,10 +236,7 @@ onMounted(() => {
 /* button */
 button {
     margin: 0;
-    border: 0;
     padding: 0.4rem;
-}
-button {
     border: 1px solid transparent;
     background-color: var(--color-background-mute);
     color: var(--vt-c-text-light-2);
@@ -253,7 +267,6 @@ button:hover {
 .buttons > button:hover {
     border: 1px solid var(--color-border-hover);
 }
-/* TODO: add radius to buttons first and last child */
 
 .four.buttons > button {
     width: 25%;

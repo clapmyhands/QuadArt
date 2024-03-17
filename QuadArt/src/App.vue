@@ -108,15 +108,6 @@ function handleDrop(e:DragEvent) {
 </script>
 
 <template>
-  <Controls
-    @background-color="handleBackgroundColor"
-    @control="handleControl"
-    @image-control="handleImageControl"
-    @parameter="handleParameterChange"
-    :rounded-corner="param.roundedCorner"
-    :leaf-size="param.leafSize"
-    :error-threshold="param.errorThreshold"
-    />
   <main
     :class="{ highlight: highlight }"
     @dragenter.stop.prevent="highlight=true"
@@ -132,9 +123,19 @@ function handleDrop(e:DragEvent) {
       @error-threshold-reached="toggleRunning(false)"
       ></Canvas>
   </main>
+  <Controls
+    @background-color="handleBackgroundColor"
+    @control="handleControl"
+    @image-control="handleImageControl"
+    @parameter="handleParameterChange"
+    :rounded-corner="param.roundedCorner"
+    :leaf-size="param.leafSize"
+    :error-threshold="param.errorThreshold"
+    />
 </template>
 
 <style scoped>
+
 main {
   padding: 1rem;
 }
