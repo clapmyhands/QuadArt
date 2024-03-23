@@ -1,6 +1,5 @@
 <script lang="ts">
 class QuadNode {
-    id: number;
     error: number;
     color: string;
     prevColor: string;
@@ -9,24 +8,26 @@ class QuadNode {
     w: number;
     h: number;
     leaf: any;
+    leafSize: number;
 
-    constructor(id: number | undefined, data: any, prevColor:string, x: number, y: number, w: number, h: number, leafSize: number) {
+    constructor(context2D: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, prevColor: string, leafSize: number) {
+        const data = context2D.getImageData(x, y, w, h).data;
         const color = this.calcAverageColor(data);
         const mse = this.calcColorMSE(data, color)
         const colorHex = this.colorToHexString(color);
 
-        this.id = id ?? 0;
         this.error = mse;
         this.color = colorHex;
-        this.prevColor = prevColor?? "#000000";
+        this.prevColor = prevColor ?? "#000000";
         this.x = x
         this.y = y
         this.w = w
         this.h = h
         this.leaf = w < leafSize || h < leafSize
+        this.leafSize = leafSize;
     }
 
-    private colorToHexString(color:Color): string {
+    private colorToHexString(color: Color): string {
         return '#' + ((1 << 24) + (color.r << 16) + (color.g << 8) + (color.b)).toString(16).slice(1);
     }
 
@@ -41,7 +42,7 @@ class QuadNode {
         const avgR = Math.round(cumR / area);
         const avgG = Math.round(cumG / area);
         const avgB = Math.round(cumB / area);
-        return {r: avgR, g: avgG, b: avgB }
+        return { r: avgR, g: avgG, b: avgB }
     }
 
     private calcColorDiff(c1: Color, c2: Color): number {
@@ -60,6 +61,26 @@ class QuadNode {
             )
         }
         return Math.sqrt(mse);
+    }
+
+    Split(context2D: CanvasRenderingContext2D): QuadNode[] {
+        if (this.leaf) {
+            return []
+        }
+
+        const halfW = this.w / 2;
+        const halfH = this.h / 2;
+        const x1 = this.x;
+        const x2 = this.x + halfW;
+        const y1 = this.y;
+        const y2 = this.y + halfH;
+        
+        return [
+            new QuadNode(context2D, x1, y1, halfW, halfH, this.color, this.leafSize),
+            new QuadNode(context2D, x2, y1, halfW, halfH, this.color, this.leafSize),
+            new QuadNode(context2D, x1, y2, halfW, halfH, this.color, this.leafSize),
+            new QuadNode(context2D, x2, y2, halfW, halfH, this.color, this.leafSize),
+        ]
     }
 }
 
@@ -104,9 +125,14 @@ function calcColorMSE(imageData: Uint8ClampedArray, color: Color) {
     }
     return Math.sqrt(mse);
 }
+
+function convertRemToPixel(rem: number): number {
+    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
 </script>
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import type {Ref} from 'vue'
 import { select, interpolate } from 'd3';
 import { computed } from '@vue/reactivity';
 
@@ -137,23 +163,24 @@ const props = withDefaults(defineProps<Props>(), {
 // const emit = defineEmits(['errorThresholdReached']);
 
 const img = new Image();
-const canvas = ref(null);
-let context = null;
+const canvas: Ref<HTMLCanvasElement | null> = ref(null);
+let context: CanvasRenderingContext2D | null = null;
 let svg = null;
 let quads = ref([]);
+let tmp : Ref<QuadNode[]> = ref([]);
 let id = 0;
-let errorVal = ref(0);
+let errorVal = ref('0');
 
-let updateModelTimer = null;
-let updateViewTimer = null;
+let updateModelTimer: number | null = null;
+let updateViewTimer: number | null = null;
 const updateViewFreq = 200;
 const updateModelFreq = 1;
 
 const errorInfo = computed(() => {
     const iterations = Math.max((quads.value.length - 1) / 3, 0);
     return 'Iterations: ' + iterations +
-            ' - Shapes: ' + quads.value.length +
-            ' - Error: ' + errorVal.value.toString();
+        ' - Shapes: ' + quads.value.length +
+        ' - Error: ' + errorVal.value;
 })
 
 function createQuadNode(x: number, y: number, width: number, height: number, prevColor: string) {
@@ -171,10 +198,6 @@ function createQuadNode(x: number, y: number, width: number, height: number, pre
         x: x, y: y, width: width, height: height,
         leaf: width < props.param.leafSize || height < props.param.leafSize,
     };
-}
-
-function convertRemToPixel(rem: number) {
-    return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
 }
 
 function reset() {
@@ -211,7 +234,7 @@ function reset() {
 
     quads.value = [];
     quads.value.push(createQuadNode(0, 0, width, height, '#000000'));
-    errorVal.value = 0;
+    errorVal.value = '0';
 
     redraw();
 }
@@ -258,6 +281,27 @@ function step() {
     errorVal.value = maxE.error.toPrecision(5);
 }
 
+function tmpStep() {
+    const nodes = tmp.value
+    if (nodes.length <= 0) {
+        return
+    }
+    // use heap
+    let maxE = nodes[0];
+    for (let i = 1; i < nodes.length; i++) {
+        const e = nodes[i];
+        if (e.error > maxE.error) {
+            maxE = e
+        }
+    }
+    if (maxE.error < props.param.errorThreshold) {
+        // emit('errorThresholdReached');
+        return
+    }
+    maxE.Split(context!)
+    errorVal.value = maxE.error.toPrecision(5);
+}
+
 function redraw(highlight: boolean = false) {
     const rect = svg.selectAll('rect').data(quads.value, n => n.id);
     rect.exit().remove();
@@ -275,7 +319,9 @@ function redraw(highlight: boolean = false) {
 }
 
 function updateModel() {
-    clearTimeout(updateModelTimer);
+    if (updateModelTimer !== null) {
+        clearTimeout(updateModelTimer);
+    }
     if (props.running) {
         step();
         updateModelTimer = setTimeout(updateModel, updateModelFreq);
@@ -283,7 +329,9 @@ function updateModel() {
 }
 
 function updateView() {
-    clearTimeout(updateViewTimer);
+    if (updateViewTimer !== null) {
+        clearTimeout(updateViewTimer);
+    }
     if (props.running) {
         redraw();
         updateViewTimer = setTimeout(updateView, updateViewFreq);
@@ -309,11 +357,11 @@ function save() {
         tmpCanvas.height = h;
 
         let tmpContext = tmpCanvas.getContext('2d');
-        tmpContext.drawImage(copyImg, 0, 0, w, h);
+        tmpContext!.drawImage(copyImg, 0, 0, w, h);
 
         // save canvas
         let png = tmpCanvas.toDataURL();
-        let download = function (href, name) {
+        let download = function (href: string, name: string) {
             const link = document.createElement('a');
             link.download = name;
             document.body.append(link);
@@ -328,7 +376,7 @@ function save() {
 
 onMounted(() => {
     // will be read frequently so use software canvas for performance
-    context = canvas.value.getContext('2d', { willReadFrequently: true });
+    context = canvas.value?.getContext('2d', { willReadFrequently: true }) ?? null;
     svg = select('#target');
 
     img.onload = () => reset()
