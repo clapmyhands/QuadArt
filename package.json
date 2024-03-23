@@ -1,9 +1,10 @@
 {
   "name": "quadart",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --emptyOutDir",
+    "build": "vue-tsc && vite build --emptyOutDir",
     "preview": "vite preview --port 4173"
   },
   "dependencies": {
@@ -13,11 +14,12 @@
     "@fortawesome/vue-fontawesome": "^3.0.1",
     "@jaames/iro": "^5.5.2",
     "d3": "^7.6.1",
-    "vue": "^3.2.38",
-    "vue-slider-component": "^4.1.0-beta.2"
+    "vue": "^3.4.21",
+    "vue-slider-component": "^4.1.0-beta.2",
+    "vue-tsc": "^2.0.7"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^3.0.3",
-    "vite": "^3.0.9"
+    "@vitejs/plugin-vue": "^5.0.4",
+    "vite": "^5.2.4"
   }
 }

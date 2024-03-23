@@ -3,7 +3,13 @@ function rgbToHex(r:number, g:number, b:number) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + (b)).toString(16).slice(1);
 }
 
-function se(c1:{r:number, g:number, b:number}, c2:{r:number, g:number, b:number}) {
+interface Color {
+    r: number
+    g: number
+    b: number
+}
+
+function se(c1:Color, c2:Color) {
     const rErr = c1.r - c2.r;
     const gErr = c1.g - c2.g;
     const bErr = c1.b - c2.b;
@@ -24,11 +30,11 @@ function calcAverageColor(imageData:Uint8ClampedArray) {
     return {avgR, avgG, avgB}
 }
 
-function calcColorMSE(imageData:Uint8ClampedArray, {r, g, b}) {
+function calcColorMSE(imageData:Uint8ClampedArray, color: Color) {
     let mse = 0;
     for (let i = 0; i < imageData.length; i+=4) {
         mse += se(
-            {r: r, g: g, b: b},
+            color,
             {r: imageData[i], g: imageData[i+1], b: imageData[i+2]}
         )
     }
@@ -41,14 +47,14 @@ import { select, interpolate } from 'd3';
 import { computed } from '@vue/reactivity';
 
 interface Parameter {
-  leafSize?: number  // default 12
-  roundedCorner?: number  // default 0
-  errorThreshold?: number  // default 420
-  backgroundColor?: string
+  leafSize: number  // default 12
+  roundedCorner: number  // default 0
+  errorThreshold: number  // default 420
+  backgroundColor: string
 }
 interface Props {
     imgSrc: string
-    param?: Parameter
+    param: Parameter
     running?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
@@ -62,32 +68,7 @@ const props = withDefaults(defineProps<Props>(), {
     running: false
 });
 
-const emit = defineEmits(['errorThresholdReached']);
-
-// define quad class
-// class QuadNode {
-//     id: number
-//     x: number
-//     y: number
-//     w: number
-//     h: number
-//     prevColor: string
-//     color: string
-//     error: number
-
-//     constructor(x:number, y:number, w:number, h:number, prevColor: string) {
-//         this.id = id++
-//         this.x = x;
-//         this.y = y;
-//         this.w = w;
-//         this.h = h;
-//         this.prevColor = prevColor;
-//     }
-
-//     isLeaf():boolean {
-//         return this.w < props.param.leafSize || this.h < props.param.leafSize
-//     }
-// }
+// const emit = defineEmits(['errorThresholdReached']);
 
 const img = new Image();
 const canvas = ref(null);
@@ -126,7 +107,7 @@ function createQuadNode(x:number, y:number, width:number, height:number, prevCol
     };
 }
 
-function convertRemToPixel(rem) {
+function convertRemToPixel(rem: number) {
     return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
 }
 
@@ -204,7 +185,7 @@ function step() {
         }
     }
     if (maxE.error < props.param.errorThreshold) {
-        emit('errorThresholdReached');
+        // emit('errorThresholdReached');
         return
     }
     split(maxE);

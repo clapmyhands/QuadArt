@@ -24,11 +24,11 @@ onMounted(() => {
   toggleRunning(true);
 })
 
-function handleBackgroundColor(color) {
+function handleBackgroundColor(color: string) {
   param.backgroundColor = color;
 }
 
-function handleParameterChange(paramName, val) {
+function handleParameterChange(paramName: string, val: number) {
   switch(paramName) {
     case "roundedCorner":
       param.roundedCorner = val
