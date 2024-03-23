@@ -1,5 +1,69 @@
 <script lang="ts">
-function rgbToHex(r:number, g:number, b:number) {
+class QuadNode {
+    id: number;
+    error: number;
+    color: string;
+    prevColor: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    leaf: any;
+
+    constructor(id: number | undefined, data: any, prevColor:string, x: number, y: number, w: number, h: number, leafSize: number) {
+        const color = this.calcAverageColor(data);
+        const mse = this.calcColorMSE(data, color)
+        const colorHex = this.colorToHexString(color);
+
+        this.id = id ?? 0;
+        this.error = mse;
+        this.color = colorHex;
+        this.prevColor = prevColor?? "#000000";
+        this.x = x
+        this.y = y
+        this.w = w
+        this.h = h
+        this.leaf = w < leafSize || h < leafSize
+    }
+
+    private colorToHexString(color:Color): string {
+        return '#' + ((1 << 24) + (color.r << 16) + (color.g << 8) + (color.b)).toString(16).slice(1);
+    }
+
+    private calcAverageColor(imageData: Uint8ClampedArray): Color {
+        let cumR = 0, cumG = 0, cumB = 0;
+        for (let i = 0; i < imageData.length; i += 4) {
+            cumR += imageData[i];
+            cumG += imageData[i + 1];
+            cumB += imageData[i + 2];
+        }
+        const area = imageData.length / 4;
+        const avgR = Math.round(cumR / area);
+        const avgG = Math.round(cumG / area);
+        const avgB = Math.round(cumB / area);
+        return {r: avgR, g: avgG, b: avgB }
+    }
+
+    private calcColorDiff(c1: Color, c2: Color): number {
+        const rErr = c1.r - c2.r;
+        const gErr = c1.g - c2.g;
+        const bErr = c1.b - c2.b;
+        return 0.2989 * (rErr * rErr) + 0.5870 * (gErr * gErr) + 0.1140 * (bErr * bErr);
+    }
+
+    private calcColorMSE(imageData: Uint8ClampedArray, color: Color): number {
+        let mse = 0;
+        for (let i = 0; i < imageData.length; i += 4) {
+            mse += this.calcColorDiff(
+                color,
+                { r: imageData[i], g: imageData[i + 1], b: imageData[i + 2] }
+            )
+        }
+        return Math.sqrt(mse);
+    }
+}
+
+function rgbToHex(r: number, g: number, b: number) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + (b)).toString(16).slice(1);
 }
 
@@ -9,33 +73,33 @@ interface Color {
     b: number
 }
 
-function se(c1:Color, c2:Color) {
+function se(c1: Color, c2: Color) {
     const rErr = c1.r - c2.r;
     const gErr = c1.g - c2.g;
     const bErr = c1.b - c2.b;
-    return 0.2989 * (rErr*rErr) + 0.5870 * (gErr*gErr) + 0.1140 * (bErr*bErr);
+    return 0.2989 * (rErr * rErr) + 0.5870 * (gErr * gErr) + 0.1140 * (bErr * bErr);
 }
 
-function calcAverageColor(imageData:Uint8ClampedArray) {
+function calcAverageColor(imageData: Uint8ClampedArray) {
     let cumR = 0, cumG = 0, cumB = 0;
-    for (let i = 0; i < imageData.length; i+=4) {
+    for (let i = 0; i < imageData.length; i += 4) {
         cumR += imageData[i];
-        cumG += imageData[i+1];
-        cumB += imageData[i+2];
+        cumG += imageData[i + 1];
+        cumB += imageData[i + 2];
     }
     const area = imageData.length / 4;
     const avgR = Math.round(cumR / area);
     const avgG = Math.round(cumG / area);
     const avgB = Math.round(cumB / area);
-    return {avgR, avgG, avgB}
+    return { avgR, avgG, avgB }
 }
 
-function calcColorMSE(imageData:Uint8ClampedArray, color: Color) {
+function calcColorMSE(imageData: Uint8ClampedArray, color: Color) {
     let mse = 0;
-    for (let i = 0; i < imageData.length; i+=4) {
+    for (let i = 0; i < imageData.length; i += 4) {
         mse += se(
             color,
-            {r: imageData[i], g: imageData[i+1], b: imageData[i+2]}
+            { r: imageData[i], g: imageData[i + 1], b: imageData[i + 2] }
         )
     }
     return Math.sqrt(mse);
@@ -47,16 +111,18 @@ import { select, interpolate } from 'd3';
 import { computed } from '@vue/reactivity';
 
 interface Parameter {
-  leafSize: number  // default 12
-  roundedCorner: number  // default 0
-  errorThreshold: number  // default 420
-  backgroundColor: string
+    leafSize: number  // default 12
+    roundedCorner: number  // default 0
+    errorThreshold: number  // default 420
+    backgroundColor: string
 }
+
 interface Props {
     imgSrc: string
     param: Parameter
     running?: boolean
 }
+
 const props = withDefaults(defineProps<Props>(), {
     param: () => <Parameter>{
         leafSize: 12,
@@ -90,11 +156,11 @@ const errorInfo = computed(() => {
             ' - Error: ' + errorVal.value.toString();
 })
 
-function createQuadNode(x:number, y:number, width:number, height:number, prevColor:string) {
+function createQuadNode(x: number, y: number, width: number, height: number, prevColor: string) {
     id++;  // dont use global id?
     const data = context.getImageData(x, y, width, height).data;  // dont use global context?
-    const {avgR, avgG, avgB} = calcAverageColor(data);
-    const mse = calcColorMSE(data, {r: avgR, g: avgG, b: avgB})
+    const { avgR, avgG, avgB } = calcAverageColor(data);
+    const mse = calcColorMSE(data, { r: avgR, g: avgG, b: avgB })
     const colorHex = rgbToHex(avgR, avgG, avgB);
 
     return {
@@ -132,8 +198,8 @@ function reset() {
         height = maxHeight
         width = Math.round(height * ratio);
     }
-    // console.log(parentE.clientWidth, parentE.clientHeight);
-    // console.log(width, height);
+    console.log(parentE.clientWidth, parentE.clientHeight);
+    console.log(width, height);
 
     svg.attr('viewBox', '0 0 ' + width + ' ' + height)
         .attr('width', width)
@@ -192,19 +258,19 @@ function step() {
     errorVal.value = maxE.error.toPrecision(5);
 }
 
-function redraw(highlight:boolean = false) {
+function redraw(highlight: boolean = false) {
     const rect = svg.selectAll('rect').data(quads.value, n => n.id);
     rect.exit().remove();
     rect.enter()
         .append('rect')
-        .attr('x', n => {return n.x+0.25})
-        .attr('y', n => {return n.y+0.25})
+        .attr('x', n => { return n.x + 0.25 })
+        .attr('y', n => { return n.y + 0.25 })
         .attr('rx', props.param?.roundedCorner || 0)
-        .attr('width', n => {return n.width-0.5})
-        .attr('height', n => {return n.height-0.5})
-        .attr('fill', n => {return highlight? '#ffffff': n.prevColor})
+        .attr('width', n => { return n.width - 0.5 })
+        .attr('height', n => { return n.height - 0.5 })
+        .attr('fill', n => { return highlight ? '#ffffff' : n.prevColor })
         .transition().duration(500).styleTween('fill', n => {
-            return interpolate(highlight? '#ffffff': n.prevColor, n.color);
+            return interpolate(highlight ? '#ffffff' : n.prevColor, n.color);
         });
 }
 
@@ -226,12 +292,12 @@ function updateView() {
 
 function save() {
     const svgE = document.getElementById('target') as HTMLOrSVGElement as SVGElement as SVGGraphicsElement;
-    const {width: w, height: h} = svgE.getBBox();
+    const { width: w, height: h } = svgE.getBBox();
 
     // clone svg and turn to blobURL
     svgE.setAttribute('xmlns', "http://www.w3.org/2000/svg");  // needed otherwise chrome will not work
     const outerHTML = svgE.outerHTML;
-    const blob = new Blob([outerHTML], {type:'image/svg+xml;charset=utf-8'});
+    const blob = new Blob([outerHTML], { type: 'image/svg+xml;charset=utf-8' });
     const URL = window.URL || window.webkitURL;
     const blobURL = URL.createObjectURL(blob);
 
@@ -247,7 +313,7 @@ function save() {
 
         // save canvas
         let png = tmpCanvas.toDataURL();
-        let download = function(href, name){
+        let download = function (href, name) {
             const link = document.createElement('a');
             link.download = name;
             document.body.append(link);
@@ -262,7 +328,7 @@ function save() {
 
 onMounted(() => {
     // will be read frequently so use software canvas for performance
-    context = canvas.value.getContext('2d', {willReadFrequently: true});
+    context = canvas.value.getContext('2d', { willReadFrequently: true });
     svg = select('#target');
 
     img.onload = () => reset()
@@ -294,11 +360,10 @@ defineExpose({
 
 <template>
     <div class="canvas">
-         <!-- class="ui content segment"> -->
         <canvas id="source" ref="canvas"></canvas>
         <svg id="target"></svg>
         <div id="content">
-            <p id="info">{{ errorInfo || 'placeholder'}}</p>
+            <p id="info">{{ errorInfo || 'placeholder' }}</p>
         </div>
     </div>
 </template>
