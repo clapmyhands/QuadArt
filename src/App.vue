@@ -4,9 +4,10 @@ import Controls from './components/Controls.vue'
 import Canvas from './components/Canvas.vue'
 import imgUrl from '@/assets/tmp.jpg'
 
-const canvas = ref(null);
+const canvas = ref<InstanceType<typeof Canvas> | null>(null);
 
 const running = ref(false);
+
 const param = reactive({
   leafSize: 12,  // default 12
   roundedCorner: 0,  // default 0
@@ -41,11 +42,11 @@ function handleParameterChange(paramName: string, val: number) {
       break;
     default:
   }
-  canvas.value.reset();
+  canvas.value?.reset();
   toggleRunning(true);
 }
 
-function handleControl(controlName) {
+function handleControl(controlName: string) {
   switch(controlName) {
     case "start":
       toggleRunning(true);
@@ -54,11 +55,11 @@ function handleControl(controlName) {
       toggleRunning(false);
       break;
     case "step":
-      canvas.value.step();
-      canvas.value.redraw(true);
+      canvas.value?.step();
+      canvas.value?.redraw(true);
       break;
     case "reset":
-      canvas.value.reset();
+      canvas.value?.reset();
       break;
     default:
       return
@@ -74,23 +75,23 @@ function handleImageUpload(file:File) {
 
     const reader = new FileReader();
     reader.onload = readerEvent => {
-        imgSrc.value = readerEvent.target.result as string
+        imgSrc.value = readerEvent.target?.result as string
     }
     // use readAsDataURL for now
     // https://stackoverflow.com/a/31743665
     reader.readAsDataURL(file)
 }
 
-function handleImageControl(imageControlName, ...args) {
+function handleImageControl(imageControlName:string, ...args: File[]) {
   switch(imageControlName) {
     case "upload":
       if (args.length != 1) {
         return;  // unexpected
       }
-      handleImageUpload(args[0] as File)
+      handleImageUpload(args[0])
       break;
     case "save":
-      canvas.value.save();
+      canvas.value?.save();
       break;
     default:
       return
@@ -98,9 +99,10 @@ function handleImageControl(imageControlName, ...args) {
 };
 
 const highlight = ref(false);
+
 function handleDrop(e:DragEvent) {
     highlight.value = false;
-    const files = e.dataTransfer.files
+    const files = e.dataTransfer?.files ?? [];
     if (files.length > 0) {
         handleImageUpload(files[0]);
     }

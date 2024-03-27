@@ -6,9 +6,9 @@ import VueSlider from 'vue-slider-component'
 import 'vue-slider-component/theme/default.css'
 
 interface Props {
-    leafSize?: number
-    roundedCorner?: number
-    errorThreshold?: number
+    leafSize: number
+    roundedCorner: number
+    errorThreshold: number
 }
 const props = defineProps<Props>();
 
@@ -21,7 +21,7 @@ const emit = defineEmits([
 
 function initColorPicker() {
     // iro.js
-    const picker = document.getElementById('picker')
+    const picker = document.getElementById('picker')!;
     // const width = picker.clientWidth - 40;
     const colorPicker = iro.ColorPicker('#picker', {
         width: picker.clientWidth,
@@ -46,12 +46,23 @@ function initColorPicker() {
             },
         ],
     });
-    colorPicker.on('input:end', (color) => {
+    colorPicker.on('input:end', (color:iro.Color) => {
         emit("backgroundColor", color.hexString)
     });
 }
 
-const slider = {
+interface Slider {
+    tooltip: string
+    useKeyboard: boolean
+    lazy: boolean
+    dragOnClick: boolean
+    min: number
+    max: number
+    interval?:number
+    marks: {[key:string|number]:string} | Array<string | number>
+}
+
+const baseSliderProps = {
     // contained: true,
     tooltip: 'focus',
     useKeyboard: false,
@@ -59,8 +70,8 @@ const slider = {
     dragOnClick: true,
 }
 
-const roundedCornerSlider = {
-    ...slider,
+const roundedCornerSlider: Slider = {
+    ...baseSliderProps,
     min: 0,
     max: 50,
     marks: {
@@ -68,46 +79,43 @@ const roundedCornerSlider = {
         50: "50px",
     },
 }
+
 const roundedCornerVal = ref(roundedCornerSlider.min);
-function handleRoundedCornerChange(val) {
+
+function handleRoundedCornerChange(val: number) {
     emit('parameter', 'roundedCorner', val);
 }
 
-const leafSizeSlider = {
-    ...slider,
+const leafSizeSlider: Slider = {
+    ...baseSliderProps,
     min: 4,
     max: 64,
     interval: 4,
-    marks: {
-        4: 4,
-        8: 8,
-        16: 16,
-        32: 32,
-        64: 64,
-    },
+    marks: [4,8,16,32,64]
 }
+
 const leafSizeVal = ref(leafSizeSlider.min);
-function handleLeafSizeChange(val) {
+
+function handleLeafSizeChange(val:number) {
     emit('parameter', 'leafSize', val);
 }
 
-const errorThresholdSlider = {
-    ...slider,
+const errorThresholdSlider: Slider = {
+    ...baseSliderProps,
     min: 50,
     max: 2500,
     interval: 50,
-    marks: {
-        50: 50,
-        2500: 2500,
-    },
+    marks: [50, 2500]
 }
+
 const errorThresholdVal = ref(errorThresholdSlider.min);
-function handleErrorThresholdChange(val) {
+
+function handleErrorThresholdChange(val:number) {
     emit('parameter', 'errorThreshold', val);
 }
 
 function imageUploadClick() {
-    document.getElementById('image-upload-input').click();
+    document.getElementById('image-upload-input')!.click();
 }
 
 function clampSlider(n:number, sliderCfg:{min:number, max:number}):number {
@@ -115,8 +123,8 @@ function clampSlider(n:number, sliderCfg:{min:number, max:number}):number {
 }
 
 onMounted(() => {
-    document.getElementById('image-upload-input').onchange = e => {
-        const file = (e.target as HTMLInputElement).files.item(0);
+    document.getElementById('image-upload-input')!.onchange = e => {
+        const file = (e.target as HTMLInputElement).files?.item(0);
         emit('imageControl', 'upload', file);
     };
 
